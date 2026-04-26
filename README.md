@@ -1,239 +1,125 @@
-# Vaccine Shipment Tracker (Transparent Proxy)
+# ETH Deposit Vault Exam Project
 
-A full-stack decentralized application for tracking vaccine shipment temperatures using an upgradeable smart contract (OpenZeppelin Transparent Proxy) on the Sepolia testnet. The project includes a React frontend, Hardhat development environment, and a Prometheus/Grafana monitoring stack.
+This workspace implements the requested integrated stack:
+- UUPS upgradeable ETH vault (Hardhat + OpenZeppelin Upgrades)
+- Aderyn audit report with Medium/High remediation
+- Vite + React + Wagmi dashboard with transaction states
+- Docker Compose for Anvil, frontend, exporter, Prometheus, Grafana
+- Tenderly fork upgrade simulation script
 
-## Table of Contents
+## 1) Smart contract and proxy logic
+Location: `contracts/`
 
-- [Overview](#overview)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Smart Contracts](#smart-contracts)
-  - [Compile](#compile)
-  - [Test](#test)
-  - [Local Deployment](#local-deployment)
-  - [Sepolia Deployment](#sepolia-deployment)
-  - [Upgrade to V2](#upgrade-to-v2)
-- [Frontend](#frontend)
-- [Monitoring](#monitoring)
-- [Deployed Contracts](#deployed-contracts)
-- [Troubleshooting](#troubleshooting)
+### Key points
+- UUPS pattern with `initialize()` and no constructor initialization.
+- Security fix applied: implementation constructor calls `_disableInitializers()`.
+- `deposit()` and `withdraw()` implemented.
+- `rewardMultiplier` and block-time-based reward accrual included.
 
-## Overview
-
-- **Smart Contract (V1):** `ShipmentTracker` tracks shipment temperatures and reverts transactions if the temperature exceeds a configurable threshold.
-- **Smart Contract (V2):** `ShipmentTrackerV2` upgrades the logic to enforce a hardcoded maximum threshold of 39°C.
-- **Proxy Pattern:** Uses OpenZeppelin's Transparent Proxy to allow upgrading the implementation contract without changing the proxy address.
-- **Frontend:** A React + Vite application to interact with the deployed contract.
-- **Monitoring:** A Node.js Prometheus exporter polls the Sepolia blockchain for temperature data, visualized via Grafana.
-
-## Project Structure
-
-```
-.
-├── contracts/                  # Solidity smart contracts
-│   ├── ShipmentTracker.sol     # V1 Implementation
-│   └── ShipmentTrackerV2.sol   # V2 Implementation
-├── scripts/
-│   ├── deploy.js               # Deploy V1 proxy to Sepolia
-│   └── upgrade_to_v2.js        # Upgrade proxy to V2
-├── frontend/                   # React + Vite frontend
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Sensor.jsx
-│   │   │   └── Audit.jsx
-│   │   └── components/
-│   │       └── Layout.jsx
-│   └── package.json
-├── monitoring/                 # Prometheus & Grafana stack
-│   ├── docker-compose.yml
-│   ├── prometheus.yml
-│   ├── exporter.js             # Node.js blockchain metrics exporter
-│   └── package.json
-├── hardhat.config.js           # Hardhat configuration
-├── package.json                # Root project dependencies
-└── address-deployment.json     # Auto-generated deployment addresses
-```
-
-## Prerequisites
-
-- **Node.js** (v18 or later)
-- **npm**
-- **Git**
-- **Docker & Docker Compose** (for monitoring stack)
-- **MetaMask** or another Web3 wallet with Sepolia ETH
-- **Alchemy Account** (for Sepolia RPC endpoint)
-
-## Installation
-
-### 1. Clone and Install Root Dependencies
-
+### Run
 ```bash
-# In the project root directory
+cd contracts
 npm install
+npm run build
+npm run test
 ```
 
-### 2. Install Frontend Dependencies
+### Deploy to Sepolia
+1. Copy `contracts/.env.example` to `contracts/.env` and set `PRIVATE_KEY` + `SEPOLIA_RPC_URL`.
+2. Deploy:
+```bash
+cd contracts
+npm run deploy:sepolia
+```
 
+## 2) Security auditing (Aderyn)
+Report file: `contracts/aderyn_report.md`
+
+Run Aderyn (if installed):
+```bash
+cd ~/block-chain/exam_brock/contracts
+aderyn . -o aderyn_report.md
+```
+
+Fixed findings documented in the report:
+- High: Uninitialized implementation (fixed with `_disableInitializers()`).
+- Medium: Reentrancy risk in withdrawal flow (fixed with `ReentrancyGuardUpgradeable` + `nonReentrant`).
+
+## 3) Frontend integration (Wagmi)
+Location: `frontend/`
+
+### Features
+- Wallet state using `useAccount`.
+- Contract reads using `useContractRead` for principal and rewards.
+- Deposit transaction with pending/success/error handling using `useContractWrite` and `useWaitForTransaction`.
+
+### Run
 ```bash
 cd frontend
 npm install
-cd ..
-```
-
-### 3. Install Monitoring Dependencies
-
-```bash
-cd monitoring
-npm install
-cd ..
-```
-
-## Environment Variables
-
-Create a `.env` file in the **project root** with the following variables:
-
-```env
-ALCHEMY_SEPOLIA_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY
-PRIVATE_KEY=YOUR_WALLET_PRIVATE_KEY
-```
-
-**⚠️ Security Warning:** Never commit your `.env` file or private key to version control.
-
-## Smart Contracts
-
-### Compile
-
-```bash
-npx hardhat compile
-```
-
-### Test
-
-```bash
-npx hardhat test
-```
-
-### Local Deployment
-
-Start a local Hardhat node in one terminal:
-
-```bash
-npx hardhat node
-```
-
-In another terminal, run the local deployment script:
-
-```bash
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-### Sepolia Deployment
-
-To deploy the V1 contract to the Sepolia testnet:
-
-```bash
-npx hardhat run scripts/deploy.js --network sepolia
-```
-
-This will:
-
-- Deploy the `ShipmentTracker` implementation contract.
-- Deploy the Transparent Proxy.
-- Automatically generate/update `address-deployment.json` with the proxy and implementation addresses.
-
-### Upgrade to V2
-
-After V1 is deployed, upgrade the proxy to `ShipmentTrackerV2`:
-
-1. Open `scripts/upgrade_to_v2.js`.
-2. Ensure the `PROXY_ADDRESS` variable matches the proxy address from `address-deployment.json`.
-3. Run the upgrade script:
-
-```bash
-npx hardhat run scripts/upgrade_to_v2.js --network sepolia
-```
-
-## Frontend
-
-### Development Mode
-
-Navigate to the frontend directory and start the dev server:
-
-```bash
-cd frontend
+cp .env.example .env
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`.
+Sepolia defaults in `.env.example`:
+- `VITE_CHAIN_ID=11155111`
+- `VITE_RPC_URL` set to a public Sepolia RPC
+- set `VITE_VAULT_ADDRESS` to your deployed proxy
 
-### Build for Production
-
+## 4) DevOps and containerization
+Run all services from workspace root:
 ```bash
-cd frontend
-npm run build
+docker compose up --build
 ```
 
-### Preview Production Build
-
+If the frontend shows `ERR_EMPTY_RESPONSE` on `http://localhost:8545`, restart after forcing Anvil recreation:
 ```bash
-cd frontend
-npm run preview
+docker compose down
+docker compose up --build --force-recreate anvil frontend
 ```
 
-## Monitoring
-
-The monitoring stack consists of a custom blockchain exporter, Prometheus, and Grafana.
-
-### 1. Start the Blockchain Exporter
-
-The exporter fetches shipment temperature data from Sepolia and exposes it as Prometheus metrics.
-
+Quick RPC check:
 ```bash
-cd monitoring
-npm start
+curl -X POST http://localhost:8545 \
+	-H "Content-Type: application/json" \
+	--data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
 ```
 
-The exporter will be available at `http://localhost:9000/metrics`.
+Services:
+- React dashboard: `http://localhost:5173`
+- Anvil RPC: `http://localhost:8545`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3001` (admin/admin by default)
 
-### 2. Start Prometheus & Grafana
+If port 3001 is also in use, set `GRAFANA_PORT` before running compose.
 
-Ensure Docker is running, then execute:
+MetaMask note:
+- Install MetaMask extension in your browser.
+- Add Anvil network: RPC `http://localhost:8545`, Chain ID `31337`, Currency `ETH`.
+- Import Anvil account private key (from container logs) for local testing.
 
+## 5) Tenderly upgrade simulation (V1 -> V2)
+1. Create a Tenderly fork and copy its RPC URL.
+2. In `contracts/.env`, set:
+```env
+PRIVATE_KEY=0x...
+TENDERLY_RPC_URL=https://rpc.tenderly.co/fork/<fork-id>
+PROXY_ADDRESS=0x...  # deployed UUPS proxy
+```
+3. Run upgrade simulation:
 ```bash
-cd monitoring
-docker-compose up -d
+cd contracts
+npm run upgrade:tenderly
 ```
 
-This launches:
+The script prints TEL before/after upgrade and throws if TEL changes. V2 doubles `rewardMultiplier` via `doubleRewardMultiplier()`.
 
-- **Prometheus** at `http://localhost:9090`
-- **Grafana** at `http://localhost:3000`
-  - Default login: `admin` / `admin`
+## 6) Observability
+Grafana dashboard is provisioned automatically from:
+- `monitoring/grafana/dashboards/vault-observability.json`
 
-### 3. Configure Grafana
-
-1. Open Grafana (`http://localhost:3000`).
-2. Add Prometheus as a data source (URL: `http://prometheus:9090`).
-3. Create a dashboard using the metric name `shipment_temperature_celsius`.
-
-## Deployed Contracts
-
-Current deployment on **Sepolia Testnet**:
-
-| Contract                                | Address                                      |
-| :-------------------------------------- | :------------------------------------------- |
-| **ShipmentTracker Proxy**               | `0x19b55c5766f1a6C5cfC0c8089e6EF93831697431` |
-| **ShipmentTracker Implementation (V1)** | `0xe3Ae687B1136887b7678B3E4daa280360e865e7d` |
-
-_(See `address-deployment.json` for the latest auto-generated details.)_
-
-## Troubleshooting
-
-- **Provider Errors / "Filter not found":** The Sepolia RPC can be unstable. The monitoring exporter includes automatic reconnection logic. If the frontend fails to load data, check your network connection or try reloading the page.
-- **Transaction Reverted (V1):** Ensure the temperature value you submit is below the currently set `temperatureThreshold`.
-- **Transaction Reverted (V2):** Ensure the temperature value is **39°C or below**.
-- **Docker Issues:** If Prometheus cannot scrape the exporter, verify that the exporter is running on port `9000` and that Docker has access to `host.docker.internal` (check `monitoring/docker-compose.yml` for the `extra_hosts` configuration).
+Metrics:
+- `vault_total_eth_locked`
+- `vault_tx_success_rate`
+# exam_brock
+#
