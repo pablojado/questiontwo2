@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:stable
+    entrypoint: ["anvil"]
+    command: ["--host", "0.0.0.0", "--port", "8545"]
+    ports:
+      - "8545:8545"
+    networks:
+      - vaultnet
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_CHAIN_ID=11155111
+      - VITE_VAULT_ADDRESS=0x2af4ea8EC881736642060bEDD3B6Eaf0Cf874E1B
+      - VITE_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+    ports:
+      - "5173:5173"
+    depends_on:
+      - anvil
+    networks:
+      - vaultnet
+
+  exporter:
+    build:
+      context: ./monitoring/exporter
+      dockerfile: Dockerfile
+    environment:
+      - RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+      - VAULT_ADDRESS=0x2af4ea8EC881736642060bEDD3B6Eaf0Cf874E1B
+    ports:
+      - "9464:9464"
+    depends_on:
+      - anvil
+    networks:
+      - vaultnet
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - exporter
+    networks:
+      - vaultnet
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - vaultnet
+
+networks:
+  vaultnet:
+    driver: bridge

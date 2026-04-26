@@ -1,0 +1,159 @@
+:root {
+  color-scheme: light;
+  font-family: "Space Grotesk", sans-serif;
+  --ink: #162529;
+  --accent: #ff5e3a;
+  --accent-soft: #ffd2b6;
+  --sky: #cbe7f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, #fff3d4 0%, #fde5d8 34%, #cbe7f7 100%);
+  color: var(--ink);
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  width: 50vmax;
+  height: 50vmax;
+  border-radius: 999px;
+  background: conic-gradient(from 90deg, #ff5e3a, #ffd2b6, #ffb948, #ff5e3a);
+  opacity: 0.17;
+  filter: blur(60px);
+  animation: spin 24s linear infinite;
+}
+
+.card {
+  width: min(760px, 100%);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(22, 37, 41, 0.12);
+  border-radius: 24px;
+  padding: 28px;
+  position: relative;
+  z-index: 1;
+  animation: rise 500ms ease-out;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-family: "Fraunces", serif;
+}
+
+.subtitle {
+  margin: 8px 0 24px;
+  opacity: 0.85;
+}
+
+.metrics {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-bottom: 18px;
+}
+
+.metrics div {
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(140deg, #ffffff, #fff6ed);
+}
+
+.metrics span {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.metrics strong {
+  font-size: 1.05rem;
+}
+
+label {
+  font-size: 0.92rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d6dbe0;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(90deg, #f05634, #ff8a33);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #2b535d;
+}
+
+.ok,
+.err {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.ok {
+  color: #1f7d42;
+}
+
+.err {
+  color: #b11414;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
